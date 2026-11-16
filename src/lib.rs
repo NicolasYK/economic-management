@@ -1,8 +1,12 @@
+mod backup;
 pub mod domain;
 pub mod models;
-pub mod store;
-mod schedules;
 mod report;
+mod schedules;
+pub mod store;
+pub use backup::BackupInfo;
+#[cfg(feature = "desktop")]
+pub mod ui;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -14,4 +18,6 @@ pub enum Error {
     Io(#[from] std::io::Error),
 }
 pub type Result<T> = std::result::Result<T, Error>;
-pub fn invalid(message: &str) -> Error { Error::Validation(message.to_owned()) }
+pub fn invalid(message: &str) -> Error {
+    Error::Validation(message.to_owned())
+}
