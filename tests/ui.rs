@@ -21,6 +21,7 @@ fn onboarding_and_all_six_pages_render_without_a_window() {
     let mut app = FinanceApp::new(Store::memory().unwrap());
     let output = ctx.run(Default::default(), |ctx| app.draw(ctx));
     assert!(labels(&output.shapes).contains("Bem-vindo"));
+    assert!(labels(&output.shapes).contains("Restaurar backup"));
     let mut s = Store::memory().unwrap();
     let today = chrono::Local::now().date_naive();
     s.initialize(0, 10000, Month::from_date(today), today)

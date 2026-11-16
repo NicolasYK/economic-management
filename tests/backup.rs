@@ -77,3 +77,44 @@ fn csv_neutralizes_formula_names() {
             .contains("\"'=HYPERLINK(\"\"example\"\")\";1.00")
     );
 }
+#[test]
+fn file_restore_keeps_recovery_and_rejects_stale_editor() {
+    let t = tempfile::tempdir().unwrap();
+    let live = t.path().join("live.sqlite");
+    let backup = t.path().join("incoming.sqlite");
+    let mut owner = Store::open(&live).unwrap();
+    owner
+        .initialize(0, 1000, Month::from_date(today()), today())
+        .unwrap();
+    let stale = Store::open(&live).unwrap();
+    let replacement = initialized();
+    replacement
+        .add_expense("Novo registro", 2500, 1, today(), today())
+        .unwrap();
+    replacement.export_backup(&backup).unwrap();
+    let recovery = owner.restore_backup(&backup).unwrap().unwrap();
+    assert!(recovery.is_file());
+    assert_eq!(Store::inspect_backup(&recovery).unwrap().balance, 1000);
+    assert!(
+        stale
+            .edit_expense(2, "Edição antiga", 1, 1, today(), today())
+            .is_err()
+    );
+    assert_eq!(
+        owner.expenses(None).unwrap()[0].description,
+        "Novo registro"
+    );
+}
+#[test]
+fn rejects_incomplete_schedules_without_materializing_history() {
+    let t = tempfile::tempdir().unwrap();
+    let p = t.path().join("incomplete.sqlite");
+    let s = initialized();
+    s.export_backup(&p).unwrap();
+    let c = rusqlite::Connection::open(&p).unwrap();
+    c.execute_batch("DELETE FROM transactions; UPDATE settings SET start=24000,last_seen=25211; INSERT INTO commitments(id,description,category_id,amount,start) VALUES(1,'Longo',1,1,24000);").unwrap();
+    drop(c);
+    let begin = std::time::Instant::now();
+    assert!(Store::inspect_backup(&p).is_err());
+    assert!(begin.elapsed() < std::time::Duration::from_secs(2));
+}

@@ -9,6 +9,7 @@ pub(crate) const SCHEMA: &str = include_str!("schema.sql");
 pub struct Store {
     pub(crate) conn: Connection,
     pub(crate) path: Option<PathBuf>,
+    data_version: i64,
 }
 impl Store {
     pub fn memory() -> Result<Self> {
@@ -40,7 +41,31 @@ impl Store {
             ));
         }
         tx.commit()?;
-        Ok(Self { conn, path })
+        let data_version = conn.pragma_query_value(None, "data_version", |r| r.get(0))?;
+        Ok(Self {
+            conn,
+            path,
+            data_version,
+        })
+    }
+    pub(crate) fn begin_write(
+        &self,
+        behavior: rusqlite::TransactionBehavior,
+    ) -> Result<rusqlite::Transaction<'_>> {
+        let tx = rusqlite::Transaction::new_unchecked(&self.conn, behavior)?;
+        let current: i64 = tx.pragma_query_value(None, "data_version", |r| r.get(0))?;
+        if current != self.data_version {
+            return Err(invalid(
+                "Os dados foram alterados em outra instância. Feche e reabra o aplicativo antes de editar.",
+            ));
+        }
+        Ok(tx)
+    }
+    fn write<P: rusqlite::Params>(&self, sql: &str, params: P) -> Result<usize> {
+        let tx = self.begin_write(rusqlite::TransactionBehavior::Immediate)?;
+        let changed = tx.execute(sql, params)?;
+        tx.commit()?;
+        Ok(changed)
     }
     pub fn path(&self) -> Option<&Path> {
         self.path.as_deref()
@@ -107,7 +132,7 @@ impl Store {
         if !["light", "dark", "system"].contains(&theme) {
             return Err(invalid("Tema inválido."));
         }
-        self.conn.execute(
+        self.write(
             "UPDATE settings SET reserve=?1,theme=?2 WHERE id=1",
             params![reserve, theme],
         )?;
@@ -127,7 +152,7 @@ impl Store {
     }
     pub fn add_category(&self, name: &str) -> Result<i64> {
         let name = label(name, 80)?;
-        self.conn.execute(
+        self.write(
             "INSERT INTO categories(name,normalized) VALUES(?1,?2)",
             params![name, name.to_lowercase()],
         )?;
@@ -135,15 +160,14 @@ impl Store {
     }
     pub fn rename_category(&self, id: i64, name: &str) -> Result<()> {
         let name = label(name, 80)?;
-        self.conn.execute(
+        self.write(
             "UPDATE categories SET name=?1,normalized=?2 WHERE id=?3",
             params![name, name.to_lowercase(), id],
         )?;
         Ok(())
     }
     pub fn delete_category(&self, id: i64) -> Result<()> {
-        self.conn
-            .execute("DELETE FROM categories WHERE id=?1", [id])?;
+        self.write("DELETE FROM categories WHERE id=?1", [id])?;
         Ok(())
     }
     fn expense_input(
@@ -174,7 +198,7 @@ impl Store {
         today: NaiveDate,
     ) -> Result<i64> {
         let description = self.expense_input(description, amount, date, today)?;
-        self.conn.execute("INSERT INTO transactions(kind,description,amount,category_id,date) VALUES('expense',?1,?2,?3,?4)",params![description,amount,category,date.to_string()])?;
+        self.write("INSERT INTO transactions(kind,description,amount,category_id,date) VALUES('expense',?1,?2,?3,?4)",params![description,amount,category,date.to_string()])?;
         Ok(self.conn.last_insert_rowid())
     }
     pub fn edit_expense(
@@ -187,14 +211,14 @@ impl Store {
         today: NaiveDate,
     ) -> Result<()> {
         let description = self.expense_input(description, amount, date, today)?;
-        let n=self.conn.execute("UPDATE transactions SET description=?1,amount=?2,category_id=?3,date=?4 WHERE id=?5 AND kind='expense' AND occurrence IS NULL",params![description,amount,category,date.to_string(),id])?;
+        let n=self.write("UPDATE transactions SET description=?1,amount=?2,category_id=?3,date=?4 WHERE id=?5 AND kind='expense' AND occurrence IS NULL",params![description,amount,category,date.to_string(),id])?;
         if n == 0 {
             return Err(invalid("Somente despesas manuais podem ser editadas."));
         }
         Ok(())
     }
     pub fn delete_expense(&self, id: i64) -> Result<()> {
-        if self.conn.execute(
+        if self.write(
             "DELETE FROM transactions WHERE id=?1 AND kind='expense' AND occurrence IS NULL",
             [id],
         )? == 0

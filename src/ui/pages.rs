@@ -90,7 +90,7 @@ if ui.small_button("Excluir").clicked(){self.confirm=Some(Confirmation::Category
                                 .find(|x| x.id == c.category_id)
                                 .map_or("", |x| x.name.as_str());
                             if let Some(n) = c.installments {
-                                let paid = (now.0 - c.start.0 + 1).clamp(0, n as i32);
+                                let paid = self.paid.get(&c.id).copied().unwrap_or(0);
                                 ui.label(format!(
                                     "{category} · {paid}/{n} parcelas · total {}",
                                     money(c.amount)

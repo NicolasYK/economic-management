@@ -133,3 +133,13 @@ fn concurrent_reconciliation_and_reopen_are_idempotent() {
         40000
     );
 }
+#[test]
+fn cancelled_installment_progress_counts_payments_not_elapsed_months() {
+    let mut s = setup();
+    let id = s
+        .add_commitment(plan(12000, Some(12)), date("2026-11-16"))
+        .unwrap();
+    s.cancel_commitment(id, date("2026-11-16")).unwrap();
+    s.reconcile(date("2027-11-01")).unwrap();
+    assert_eq!(s.commitment_payments().unwrap().get(&id), Some(&1));
+}

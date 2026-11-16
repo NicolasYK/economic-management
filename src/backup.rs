@@ -120,6 +120,7 @@ fn validate(s: &mut Store) -> Result<()> {
         return Err(invalid("Vigência de renda ou recorrência inválida."));
     }
     let commitments = s.commitments()?;
+    let by_id: std::collections::HashMap<_, _> = commitments.iter().map(|c| (c.id, c)).collect();
     let mut query=s.conn.prepare("SELECT id,kind,description,amount,date,occurrence,commitment_id,category_id FROM transactions")?;
     let mut rows = query.query([])?;
     while let Some(row) = rows.next()? {
@@ -150,9 +151,8 @@ fn validate(s: &mut Store) -> Result<()> {
                     return Err(invalid("Renda automática inconsistente."));
                 }
             } else {
-                let c = commitments
-                    .iter()
-                    .find(|c| Some(c.id) == origin)
+                let c = origin
+                    .and_then(|id| by_id.get(&id))
                     .ok_or_else(|| invalid("Origem de parcela ausente."))?;
                 if key != format!("commit:{}:{m}", c.id)
                     || crate::schedules::charge(&s.conn, c, m)? != Some(amount)
@@ -165,15 +165,34 @@ fn validate(s: &mut Store) -> Result<()> {
     }
     drop(rows);
     drop(query);
-    let count: i64 = s
-        .conn
-        .query_row("SELECT count(*) FROM transactions", [], |r| r.get(0))?;
-    s.reconcile(settings.last_seen.first())?;
-    let complete: i64 = s
-        .conn
-        .query_row("SELECT count(*) FROM transactions", [], |r| r.get(0))?;
-    if count != complete {
+    let first_income: Option<i32> =
+        s.conn
+            .query_row("SELECT MIN(month) FROM income_schedules", [], |r| r.get(0))?;
+    let expected = first_income.map_or(0, |first| (settings.last_seen.0 - first + 1).max(0) as i64);
+    let actual: i64 = s.conn.query_row(
+        "SELECT count(*) FROM transactions WHERE kind='income'",
+        [],
+        |r| r.get(0),
+    )?;
+    if expected != actual {
         return Err(invalid("O backup possui ocorrências mensais ausentes."));
+    }
+    let counts:std::collections::HashMap<i64,i64>=s.conn.prepare("SELECT commitment_id,count(*) FROM transactions WHERE commitment_id IS NOT NULL GROUP BY commitment_id")?.query_map([],|r|Ok((r.get(0)?,r.get(1)?)))?.collect::<std::result::Result<_,_>>()?;
+    for c in &commitments {
+        let mut last = settings.last_seen.0;
+        if let Some(end) = c.end {
+            last = last.min(end.0);
+        }
+        if let Some(end) = c.cancelled {
+            last = last.min(end.0 - 1);
+        }
+        if let Some(n) = c.installments {
+            last = last.min(c.start.0 + n as i32 - 1);
+        }
+        let expected = (last - c.start.0 + 1).max(0) as i64;
+        if counts.get(&c.id).copied().unwrap_or(0) != expected {
+            return Err(invalid("O backup possui cobranças ausentes."));
+        }
     }
     Ok(())
 }
@@ -211,25 +230,77 @@ impl Store {
     }
     pub fn restore_backup(&mut self, path: &Path) -> Result<Option<PathBuf>> {
         let clean = canonical_backup(path)?;
+        self.replace_backup(clean, || {})
+    }
+    fn replace_backup(
+        &mut self,
+        clean: Store,
+        after_recovery: impl FnOnce(),
+    ) -> Result<Option<PathBuf>> {
+        let tx = self.begin_write(rusqlite::TransactionBehavior::Exclusive)?;
         let recovery = if let Some(live) = &self.path {
             let suffix = std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .map_err(|_| invalid("Relógio inválido."))?
                 .as_nanos();
             let p = live.with_file_name(format!("recovery-{suffix}.sqlite"));
-            self.export_backup(&p)?;
+            // Capture the locked live snapshot before allowing any other writer.
+            let recovery_store = Store::memory()?;
+            copy_records(&tx, &recovery_store.conn)?;
+            recovery_store.export_backup(&p)?;
             Some(p)
         } else {
             None
         };
+        after_recovery();
         // One SQLite transaction replaces rows, preserving the open file identity for other processes.
         // SQLite rolls the entire replacement back if any insertion or commit fails.
-        let tx = self
-            .conn
-            .transaction_with_behavior(rusqlite::TransactionBehavior::Exclusive)?;
         copy_records(&clean.conn, &tx)?;
         tx.execute("UPDATE schema_migrations SET version=?1", params![1])?;
         tx.commit()?;
         Ok(recovery)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn validation_never_materializes_missing_history() {
+        let mut s = Store::memory().unwrap();
+        let date = parse_date("2026-11-16").unwrap();
+        s.initialize(0, 100, Month::from_date(date), date).unwrap();
+        s.conn.execute("DELETE FROM transactions", []).unwrap();
+        assert!(validate(&mut s).is_err());
+        assert_eq!(
+            s.conn
+                .query_row("SELECT count(*) FROM transactions", [], |r| r
+                    .get::<_, i64>(0))
+                .unwrap(),
+            0
+        );
+    }
+    #[test]
+    fn recovery_and_replacement_hold_one_exclusive_lock() {
+        let t = tempfile::tempdir().unwrap();
+        let path = t.path().join("live.sqlite");
+        let date = parse_date("2026-11-16").unwrap();
+        let mut s = Store::open(&path).unwrap();
+        s.initialize(0, 100, Month::from_date(date), date).unwrap();
+        let other = Connection::open(&path).unwrap();
+        other.busy_timeout(Duration::ZERO).unwrap();
+        let mut replacement = Store::memory().unwrap();
+        replacement
+            .initialize(0, 200, Month::from_date(date), date)
+            .unwrap();
+        s.replace_backup(replacement, || {
+            assert!(
+                other
+                    .execute("UPDATE settings SET opening=999", [])
+                    .is_err(),
+                "another connection wrote in the recovery/restore gap"
+            );
+        })
+        .unwrap();
     }
 }

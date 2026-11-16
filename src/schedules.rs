@@ -86,9 +86,7 @@ impl Store {
                 "A nova renda deve começar a partir do próximo mês.",
             ));
         }
-        let tx = self
-            .conn
-            .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
+        let tx = self.begin_write(rusqlite::TransactionBehavior::Immediate)?;
         reconcile_connection(&tx, today)?;
         tx.execute("INSERT INTO income_schedules VALUES(?1,?2) ON CONFLICT(month) DO UPDATE SET amount=excluded.amount",params![first.0,amount])?;
         tx.commit()?;
@@ -120,9 +118,7 @@ impl Store {
             installment(c.amount, count, 0)?;
             Month(c.start.0 + count as i32 - 1).validate()?;
         }
-        let tx = self
-            .conn
-            .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
+        let tx = self.begin_write(rusqlite::TransactionBehavior::Immediate)?;
         tx.execute("INSERT INTO commitments(description,category_id,amount,installments,start,end) VALUES(?1,?2,?3,?4,?5,?6)",params![name,c.category_id,c.amount,c.installments,c.start.0,c.end.map(|m|m.0)])?;
         let id = tx.last_insert_rowid();
         reconcile_connection(&tx, today)?;
@@ -132,9 +128,7 @@ impl Store {
     pub fn revise_commitment(&mut self, id: i64, amount: i64, today: NaiveDate) -> Result<()> {
         validate_amount(amount, false)?;
         let next = self.schedule_date(today)?.next().validate()?;
-        let tx = self
-            .conn
-            .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
+        let tx = self.begin_write(rusqlite::TransactionBehavior::Immediate)?;
         let valid:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM commitments WHERE id=?1 AND installments IS NULL AND (cancelled IS NULL OR cancelled>?2) AND (end IS NULL OR end>=?2))",params![id,next.0],|r|r.get(0))?;
         if !valid {
             return Err(invalid("Apenas recorrências ativas podem ser alteradas."));
@@ -146,9 +140,7 @@ impl Store {
     }
     pub fn cancel_commitment(&mut self, id: i64, today: NaiveDate) -> Result<()> {
         let next = self.schedule_date(today)?.next().validate()?;
-        let tx = self
-            .conn
-            .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
+        let tx = self.begin_write(rusqlite::TransactionBehavior::Immediate)?;
         reconcile_connection(&tx, today)?;
         tx.execute(
             "UPDATE commitments SET cancelled=MIN(COALESCE(cancelled,?1),?1) WHERE id=?2",

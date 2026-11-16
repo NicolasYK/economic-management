@@ -1,6 +1,9 @@
 use crate::{Result, domain::*, models::*, store::Store};
 use rusqlite::params;
 impl Store {
+    pub fn commitment_payments(&self) -> Result<std::collections::HashMap<i64, i64>> {
+        Ok(self.conn.prepare("SELECT commitment_id,count(*) FROM transactions WHERE commitment_id IS NOT NULL GROUP BY commitment_id")?.query_map([],|r|Ok((r.get(0)?,r.get(1)?)))?.collect::<std::result::Result<_,_>>()?)
+    }
     pub fn snapshot(&self, month: Month, year: i32) -> Result<Snapshot> {
         month.validate()?;
         Month(year * 12).validate()?;

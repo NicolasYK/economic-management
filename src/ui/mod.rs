@@ -26,6 +26,7 @@ pub struct FinanceApp {
     commitments: Vec<Commitment>,
     charges: std::collections::HashMap<i64, (Option<i64>, Option<i64>)>,
     annual_categories: Vec<(String, i64)>,
+    paid: std::collections::HashMap<i64, i64>,
     month: Month,
     year: i32,
     error: Option<String>,
@@ -64,6 +65,7 @@ impl FinanceApp {
             commitments: vec![],
             charges: Default::default(),
             annual_categories: vec![],
+            paid: Default::default(),
             month,
             year: month.0 / 12,
             error: None,
@@ -109,6 +111,7 @@ impl FinanceApp {
         self.summary = self.store.snapshot(self.month, self.year)?;
         self.expenses = self.store.expenses(None)?;
         self.commitments = self.store.commitments()?;
+        self.paid = self.store.commitment_payments()?;
         self.annual_categories = self.store.annual_categories(self.year)?;
         self.charges.clear();
         let now = Month::from_date(self.today);
@@ -321,6 +324,38 @@ impl FinanceApp {
                 self.load_preferences();
             }
         }
+        ui.add_space(15.0);
+        if ui.button("Restaurar backup existente").clicked() {
+            self.choose_restore();
+        }
+    }
+    fn choose_restore(&mut self) {
+        if let Some(path) = rfd::FileDialog::new()
+            .add_filter("Backup SQLite", &["sqlite"])
+            .pick_file()
+        {
+            match Store::inspect_backup(&path) {
+                Ok(info) => {
+                    self.confirm = Some(Confirmation::Restore(
+                        path,
+                        format!(
+                            "{} lançamentos · {} categorias · saldo {}",
+                            info.transactions,
+                            info.categories,
+                            money(info.balance)
+                        ),
+                    ))
+                }
+                Err(e) => self.error = Some(e.to_string()),
+            }
+        }
+    }
+    fn reset_after_restore(&mut self) {
+        self.form = None;
+        self.category_edit = None;
+        self.category_name.clear();
+        self.filter.clear();
+        self.page = 0;
     }
     fn confirmation_dialog(&mut self, ctx: &egui::Context) {
         let Some(action) = self.confirm.take() else {
@@ -371,6 +406,7 @@ impl FinanceApp {
             };
             if self.finish(result) {
                 if matches!(action, Confirmation::Restore(..)) {
+                    self.reset_after_restore();
                     let r = self.store.reconcile(self.today);
                     self.finish(r);
                     self.load_preferences();
@@ -394,5 +430,22 @@ impl eframe::App for FinanceApp {
                 ctx.request_repaint();
             }
         }
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn restoration_discards_forms_and_category_edits() {
+        let mut app = FinanceApp::new(Store::memory().unwrap());
+        app.new_entry(0);
+        app.category_edit = Some(2);
+        app.category_name = "Antiga".into();
+        app.filter = "Antes".into();
+        app.reset_after_restore();
+        assert!(app.form.is_none());
+        assert!(app.category_edit.is_none());
+        assert!(app.category_name.is_empty());
+        assert!(app.filter.is_empty());
     }
 }
