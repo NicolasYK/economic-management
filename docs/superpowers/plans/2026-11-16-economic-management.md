@@ -72,3 +72,7 @@ Files: `.github/workflows/{ci,release}.yml`, `.github/PULL_REQUEST_TEMPLATE.md`,
 - Preflight: existing checkout is clean on codex/technical-design; implement in this branch as continuation of approved design, preserving main.
 - User approved design and explicitly requested implementation; no second approval of this plan is needed.
 - Interfaces: tasks 2–4 share Store; domain validation is canonical for both UI and backup.
+- Tasks 1–4 implemented: initial 14 tests, formatting and strict Clippy passed; Linux and Windows release binaries built. Native Linux smoke and Windows onboarding/dashboard inspected.
+- Task 5 in progress: packaging, CI/release publication and final review corrections.
+- Review found and regression tests reproduced a recovery race, mutating backup validation, stale editor writes, onboarding restore access and canceled-plan progress. Corrections preserve an exclusive lock across recovery/replacement, validate occurrence counts without generating records, reject writes after external data-version changes, clear pending forms, offer first-launch restore and count persisted payments.
+- Ruling: normal mutations from an instance whose database was changed by another process require reopening. This conservatively prevents stale forms from changing unrelated restored rows without adding a schema generation table.

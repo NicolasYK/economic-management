@@ -1,9 +1,9 @@
 # Economic Management — projeto técnico
 
-Data: 16/11/2026. Estado: **proposta para revisão; implementação não iniciada**.
+Data: 16/11/2026. Estado: **aprovado pelo usuário; implementação em andamento**.
 
-O usuário solicitou revisar este projeto antes da implementação. As escolhas
-abaixo são recomendações técnicas, ainda sujeitas à aprovação. O nome de exibição
+O usuário revisou e aprovou este projeto antes da implementação. As escolhas
+abaixo registram a proposta aprovada. O nome de exibição
 inicial será **Economic Management**, acompanhando o repositório.
 
 ## 1. Objetivo e limites
