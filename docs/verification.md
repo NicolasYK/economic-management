@@ -30,8 +30,8 @@
 ## Remaining verification in progress
 
 - Cross-platform GitHub Actions runs and packaged artifact smoke tests.
-- Idle resource measurement.
-- Independent review follow-up.
+- Cross-platform backup transfer and interrupted-process restore recovery were not
+  exercised manually; automated restore invariants and native launch are covered.
 
 ## Release follow-up (2026-11-16, America/Sao_Paulo)
 
@@ -42,6 +42,10 @@
   and the AppImage, with explicit failure if any required library is missing.
 - Rebuilt the Linux release binary and AppImage; launching the extracted AppImage
   under Xvfb completed successfully (exit 0). WSL Mesa warnings remain nonfatal.
+- Idle measurement with 10,000 synthetic expenses under WSL/Xvfb: after 5 seconds
+  warm-up, a 15-second sample used 0.067% of one CPU core and 177,736 KiB RSS
+  (about 174 MiB). This includes this machine's graphics stack and is not a
+  cross-platform resource guarantee.
 - Independent source review and follow-up review of release changes found no
   blocking correctness/security defects. Native package CI remains the publication gate.
 - Main protection configured with required PR, up-to-date Linux/Windows/macOS and
