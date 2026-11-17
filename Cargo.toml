@@ -1,0 +1,33 @@
+[package]
+name = "economic-management"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.92"
+license = "Apache-2.0"
+description = "Offline personal finance desktop application"
+
+[features]
+default = ["desktop"]
+desktop = ["dep:eframe", "dep:rfd", "dep:directories"]
+
+[dependencies]
+chrono = "0.4.42"
+rusqlite = { version = "0.43.0", features = ["bundled", "backup"] }
+thiserror = "2.0.17"
+eframe = { version = "0.33.3", optional = true, default-features = false, features = ["default_fonts", "glow", "x11", "wayland", "accesskit"] }
+rfd = { version = "0.15.4", optional = true, default-features = false, features = ["xdg-portal", "async-std"] }
+directories = { version = "6.0.0", optional = true }
+
+[dev-dependencies]
+tempfile = "3.23.0"
+
+[[bin]]
+name = "economic-management"
+path = "src/main.rs"
+required-features = ["desktop"]
+
+[profile.release]
+strip = true
+lto = "thin"
+codegen-units = 1
+
