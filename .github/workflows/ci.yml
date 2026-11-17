@@ -26,6 +26,16 @@ jobs:
       - run: cargo test --locked
       - run: cargo clippy --locked --all-targets -- -D warnings
       - run: cargo build --locked
+      - name: Package Windows debug binary
+        if: runner.os == 'Windows'
+        run: python scripts/package.py windows --binary target/debug/economic-management.exe
+      - name: Windows packaged graphical smoke test
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/setup_windows_smoke.ps1
+      - name: Launch Windows package with software OpenGL
+        if: runner.os == 'Windows'
+        run: python scripts/smoke_package.py
       - name: Native graphical smoke test
         if: runner.os == 'Linux'
         run: xvfb-run -a target/debug/economic-management --data-dir qa-output/smoke --smoke-test

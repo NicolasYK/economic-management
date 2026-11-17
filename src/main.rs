@@ -3,11 +3,13 @@ use economic_management::{store::Store, ui::FinanceApp};
 fn main() {
     if let Err(message) = run() {
         eprintln!("{message}");
-        rfd::MessageDialog::new()
-            .set_title("Economic Management")
-            .set_description(&message)
-            .set_level(rfd::MessageLevel::Error)
-            .show();
+        if !std::env::args().any(|arg| arg == "--smoke-test") {
+            rfd::MessageDialog::new()
+                .set_title("Economic Management")
+                .set_description(&message)
+                .set_level(rfd::MessageLevel::Error)
+                .show();
+        }
         std::process::exit(1);
     }
 }
@@ -54,7 +56,10 @@ fn run() -> std::result::Result<(), String> {
         options,
         Box::new(move |_| Ok(Box::new(app))),
     )
-    .map_err(|_| {
+    .map_err(|error| {
+        if smoke {
+            eprintln!("Native graphics initialization failed: {error:?}");
+        }
         "Não foi possível iniciar a interface gráfica. Verifique o driver gráfico do sistema."
             .into()
     })
