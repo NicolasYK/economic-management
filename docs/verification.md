@@ -27,9 +27,8 @@
   63.12 ms in WSL Ubuntu 24.04; SQLite file size was 921,600 bytes. This measures the
   data path, not complete graphical startup, and is specific to this machine.
 
-## Remaining verification in progress
+## Manual verification limits
 
-- Cross-platform GitHub Actions runs and packaged artifact smoke tests.
 - Cross-platform backup transfer and interrupted-process restore recovery were not
   exercised manually; automated restore invariants and native launch are covered.
 
@@ -69,3 +68,28 @@ alone is not evidence that a platform build or a release was published.
   into the disposable test extraction. The driver is not installed globally and
   is not shipped in the release ZIP. Normal users need an OpenGL 2.0+ driver.
 - Version 0.1.1 retains the failed 0.1.0 tag instead of rewriting its history.
+
+## Published release (2026-11-17)
+
+- [PR #2 CI](https://github.com/NicolasYK/economic-management/actions/runs/44010294908)
+  and [official main CI](https://github.com/NicolasYK/economic-management/actions/runs/44072897077)
+  passed all three platform jobs and the security job, including 21 tests,
+  formatting, strict Clippy and Windows packaged graphical launch.
+- [Release run](https://github.com/NicolasYK/economic-management/actions/runs/44074293924)
+  passed version/branch validation, all three native builds, audits, package launch
+  tests and publication. Windows used the isolated Mesa software renderer.
+- [v0.1.1](https://github.com/NicolasYK/economic-management/releases/tag/v0.1.1)
+  is published as a stable release (not draft/prerelease), from official commit
+  `7d79a8c72bc718407b2a456f0f4166b9e9e85f97` on main.
+- Verified the three published `.sha256` files against GitHub's uploaded-asset
+  SHA-256 digests. Packages are Windows x86_64 ZIP, Linux x86_64 AppImage and
+  macOS arm64 ZIP. No 0.1.0 release assets were published.
+- Main protection was read back from the API: required PR, all four checks with
+  strict freshness, administrators included, resolved conversations, force push
+  and deletion disabled. `codex/technical-design` remains the development branch.
+
+| Package | Published SHA-256 |
+| --- | --- |
+| Linux x86_64 | `dd2d904ea0a4a210cc9207b61fc026f5eabc5c44fb537d6cbba2f90cd6dca6b9` |
+| macOS arm64 | `2c914d9529334690e0c7091ce937d155aacf1d98c31fde83410380edf42377d6` |
+| Windows x86_64 | `45a2f91bf01200eb9f3fe3fbbd73a15450fb02ae0360555ad0fa9bc3ee1da492` |
