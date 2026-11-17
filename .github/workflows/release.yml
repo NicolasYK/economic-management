@@ -61,6 +61,10 @@ jobs:
         if: runner.os == 'Linux'
         run: xvfb-run -a target/release/economic-management --data-dir qa-output/smoke --smoke-test
       - run: python scripts/package.py ${{ matrix.package }}
+      - name: Windows CI software OpenGL
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/setup_windows_smoke.ps1
       - name: Extract and launch native ZIP
         if: runner.os != 'Linux'
         run: python scripts/smoke_package.py

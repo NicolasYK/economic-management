@@ -54,3 +54,18 @@
 
 This ledger distinguishes observed checks from pending work; workflow configuration
 alone is not evidence that a platform build or a release was published.
+
+## Windows release correction (2026-11-17)
+
+- All four PR checks and all four main checks passed for the original promotion.
+- Release run `44007816252` passed Linux AppImage and macOS ZIP build/launch, but
+  Windows ZIP launch timed out. Publication was blocked; no 0.1.0 assets were released.
+- Diagnostic CI run `44009392829` reproduced `OpenGL(PainterError("egui_glow
+  requires opengl 2.0+. "))` on the Windows hosted runner. Smoke mode now exits
+  without an interactive error dialog and captures the native error.
+- A regression verifies invalid smoke invocations exit noninteractively; the local
+  suite now has 21 passing tests, with formatting and strict Clippy passing.
+- Windows CI/package tests use Mesa 25.0.7 MSVC with a pinned SHA-256, copied only
+  into the disposable test extraction. The driver is not installed globally and
+  is not shipped in the release ZIP. Normal users need an OpenGL 2.0+ driver.
+- Version 0.1.1 retains the failed 0.1.0 tag instead of rewriting its history.

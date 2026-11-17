@@ -24,7 +24,7 @@ Não é necessário instalar Rust, Python, Node ou um servidor de banco de dados
 
 | Sistema | Pacote e requisitos |
 | --- | --- |
-| Windows | ZIP x86_64; extraia e abra `economic-management.exe`. Alvo Windows 10/11 de 64 bits. |
+| Windows | ZIP x86_64; extraia e abra `economic-management.exe`. Alvo Windows 10/11 de 64 bits, com driver OpenGL 2.0+. |
 | Linux | AppImage x86_64; ambiente gráfico X11/Wayland e glibc 2.39+ (Ubuntu 24.04 ou equivalente), driver OpenGL. Diálogos de arquivos usam o portal do desktop. |
 | macOS | ZIP com `.app`; arquitetura indicada no nome do pacote, macOS 14+. |
 
@@ -127,7 +127,8 @@ annual reports/CSV export, three themes and portable SQLite backups.
 ### Run
 
 Download the matching package from [Releases](https://github.com/NicolasYK/economic-management/releases)
-and verify its `.sha256`. Extract the Windows x86_64 ZIP and run the EXE. On Linux,
+and verify its `.sha256`. Extract the Windows x86_64 ZIP and run the EXE (an OpenGL
+2.0+ graphics driver is required). On Linux,
 mark the x86_64 AppImage executable and run it; use `--appimage-extract-and-run` if
 FUSE is unavailable. Linux requires a desktop, glibc 2.39+, an OpenGL driver and a
 desktop portal for file dialogs. On macOS, extract the `.app`; the filename identifies

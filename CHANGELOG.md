@@ -2,6 +2,26 @@
 
 Versionamento semântico / Semantic versioning: MAJOR.MINOR.PATCH.
 
+## [0.1.1] - 2026-11-17
+
+### Fixed / Corrigido
+
+- Dependência X11 de teclado instalada no CI Linux e incluída no AppImage.
+  Install the Linux X11 keyboard runtime in CI and bundle it in the AppImage.
+- Testes de abertura Windows usam Mesa por software verificado somente no runner;
+  erros em modo smoke encerram com diagnóstico, sem esperar por diálogo interativo.
+  Windows launch tests use verified software Mesa only in the runner; smoke errors
+  exit with diagnostics rather than waiting for an interactive dialog.
+- Abertura do pacote Windows passa a ser obrigatória no CI antes da promoção.
+  Windows package launch is now required in CI before promotion.
+- Promoção protegida para main e separação entre releases estáveis e alpha/beta.
+  Protected main promotion and separate stable and alpha/beta release channels.
+
+A tag 0.1.0 foi preservada para rastreabilidade; sua publicação foi bloqueada pelo
+teste gráfico Windows. 0.1.1 é a primeira versão destinada à distribuição pública.
+The 0.1.0 tag is retained for traceability; its Windows launch check blocked
+publication. 0.1.1 is the first version intended for public distribution.
+
 ## [0.1.0] - 2026-11-16
 
 ### Added / Adicionado
