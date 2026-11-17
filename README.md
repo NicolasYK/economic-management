@@ -18,7 +18,7 @@ Aplicativo desktop em Rust com SQLite incorporado e interface em português.
 
 ### Baixar e abrir
 
-Os pacotes serão disponibilizados em [Releases](https://github.com/NicolasYK/economic-management/releases).
+Os pacotes estão disponíveis em [Releases](https://github.com/NicolasYK/economic-management/releases).
 Use o arquivo correspondente ao seu sistema e confira o `.sha256` incluído.
 Não é necessário instalar Rust, Python, Node ou um servidor de banco de dados.
 
