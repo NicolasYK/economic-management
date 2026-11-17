@@ -60,12 +60,13 @@ def linux(binary):
         # Libraries loaded dynamically by winit are not all visible in the executable's ldd output.
         queue = [binary]
         for name in ['libX11.so.6', 'libXcursor.so.1', 'libXrandr.so.2', 'libXi.so.6',
-                     'libXinerama.so.1', 'libxkbcommon.so.0', 'libwayland-client.so.0',
+                     'libXinerama.so.1', 'libxkbcommon.so.0', 'libxkbcommon-x11.so.0', 'libwayland-client.so.0',
                      'libwayland-cursor.so.0', 'libwayland-egl.so.1']:
             candidate = Path('/usr/lib/x86_64-linux-gnu') / name
-            if candidate.exists():
-                shutil.copy2(candidate, lib / name)
-                queue.append(candidate)
+            if not candidate.exists():
+                raise RuntimeError(f'Missing required runtime library: {name}')
+            shutil.copy2(candidate, lib / name)
+            queue.append(candidate)
         seen = set()
         excluded = ('libc.so.', 'libm.so.', 'libpthread.so.', 'libdl.so.', 'librt.so.', 'ld-linux', 'libGL', 'libEGL')
         while queue:

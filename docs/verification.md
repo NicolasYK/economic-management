@@ -33,5 +33,20 @@
 - Idle resource measurement.
 - Independent review follow-up.
 
+## Release follow-up (2026-11-16, America/Sao_Paulo)
+
+- Fresh WSL run: all 20 tests, formatting and strict Clippy passed.
+- GitHub CI run `44005673108`: tests, formatting and Clippy passed on all
+  three platforms; security audit passed. Linux graphical launch failed because
+  `libxkbcommon-x11.so` was absent. Added the runtime dependency to both workflows
+  and the AppImage, with explicit failure if any required library is missing.
+- Rebuilt the Linux release binary and AppImage; launching the extracted AppImage
+  under Xvfb completed successfully (exit 0). WSL Mesa warnings remain nonfatal.
+- Independent source review and follow-up review of release changes found no
+  blocking correctness/security defects. Native package CI remains the publication gate.
+- Main protection configured with required PR, up-to-date Linux/Windows/macOS and
+  security checks, administrator enforcement, resolved conversations, no force push
+  and no deletion. This solo-maintainer workflow requires zero external approvals.
+
 This ledger distinguishes observed checks from pending work; workflow configuration
 alone is not evidence that a platform build or a release was published.

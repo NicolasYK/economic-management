@@ -96,10 +96,18 @@ cargo install cargo-audit --version 0.23.0 --locked
 cargo audit
 ```
 
-`main` é a linha estável; mudanças usam branches curtas `codex/...`, testes e revisão.
+`main` é a versão oficial/homologada. `codex/technical-design` é a branch permanente
+de desenvolvimento alpha/beta, mantida após cada promoção. Mudanças chegam à `main`
+por pull request, com testes Linux/Windows/macOS, auditoria, branch atualizada e
+conversas resolvidas. As regras também se aplicam aos administradores e bloqueiam
+force-push e exclusão da `main`. Não há aprovação humana obrigatória neste projeto
+individual; a revisão técnica e os checks são parte da promoção.
 Cada commit tem título convencional e corpo explicativo. Para versões, altere
 `Cargo.toml`, atualize [CHANGELOG.md](CHANGELOG.md) e crie uma tag correspondente,
-como `v0.1.0`. O workflow rejeita divergência entre tag e versão, testa os três SOs,
+como `v0.1.0`. Tags estáveis devem apontar para commits já integrados à `main`;
+tags como `v0.2.0-beta.1` devem pertencer à branch dev e são publicadas como
+pré-releases, sem substituir a versão estável mais recente.
+O workflow rejeita divergência entre tag e versão, testa os três SOs,
 audita dependências e publica os pacotes somente depois de todos os builds passarem.
 Sobre exibe a versão e o commit incorporados na compilação.
 
@@ -156,8 +164,14 @@ This prevents stale forms from modifying restored records.
 ### Contributing and releases
 
 Use the pinned Rust toolchain and lockfile. Run the commands in the development
-section above. Keep changes on short branches with meaningful commit titles and
-bodies. CI runs tests, formatting, Clippy and dependency audits. Tags must match
+section above. `main` contains official releases; `codex/technical-design` is the
+permanent alpha/beta development branch. Promote through pull requests with all
+three platform checks and security audit passing, an up-to-date branch and resolved
+conversations. Administrators are also covered; force pushes and deletion are blocked.
+This individual project does not require another human approval.
+Stable tags must belong to `main`; prerelease tags must belong to the development
+branch and are published as prereleases without replacing the latest stable release.
+CI runs tests, formatting, Clippy and dependency audits. Tags must match
 the Cargo version; release packages are published only after successful platform
 builds and checks. Python is a packaging tool only, never an application dependency.
 
