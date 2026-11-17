@@ -17,6 +17,10 @@ with tempfile.TemporaryDirectory(prefix='economic-package-smoke-') as folder:
     binary = path / ('economic-management.exe' if system == 'windows' else 'Economic Management.app/Contents/MacOS/economic-management')
     if system == 'macos':
         binary.chmod(0o755)
-    subprocess.run([str(binary), '--data-dir', str(path / 'test-data'), '--smoke-test'], check=True, timeout=60)
+    result = subprocess.run([str(binary), '--data-dir', str(path / 'test-data'), '--smoke-test'],
+                            capture_output=True, text=True, timeout=60)
+    print(result.stdout)
+    print(result.stderr)
+    result.check_returncode()
     assert (path / 'test-data/finance.sqlite').is_file(), 'Packaged app did not initialize its test database'
 print(f'Packaged {platform.system()} executable passed native smoke test')
